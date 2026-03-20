@@ -40,7 +40,12 @@ async function buscarDadosNetSuite() {
         method: 'POST',
     };
 
-    const headers = oauth.toHeader(oauth.authorize(request_data, token));
+    const authHeader = oauth.toHeader(oauth.authorize(request_data, token));
+
+    const headers = {
+        ...authHeader,
+        realm: '6932886' // ⚠️ seu account id (sem underscore)
+    };
 
     try {
         const response = await axios.post(
