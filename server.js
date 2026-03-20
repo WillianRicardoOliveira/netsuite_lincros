@@ -13,8 +13,8 @@ const NETSUITE_URL = 'https://6932886.restlets.api.netsuite.com/app/site/hosting
 
 const oauth = OAuth({
     consumer: {
-        key: 'SEU_CONSUMER_KEY',
-        secret: 'SEU_CONSUMER_SECRET',
+        key: '1c17e6883aaee9076cba8a14f018ec876538f4c9043a42d27077691a0b7b7b11',
+        secret: '632b6b0f744eecd29be7510ec509990e72ba482ef4aabeada2bcad5924266447',
     },
     signature_method: 'HMAC-SHA256',
     hash_function(base_string, key) {
@@ -26,8 +26,8 @@ const oauth = OAuth({
 });
 
 const token = {
-    key: 'SEU_TOKEN_ID',
-    secret: 'SEU_TOKEN_SECRET',
+    key: '71323f421135af0d67f83719c5a1f090b22f3803f9ef43522aa1ee999dc2e259',
+    secret: '8e9cc63d5334c635af23642aa95c353f98c0ae14084098df92bfdc0c40e9ae40',
 };
 
 // ==========================
