@@ -6,13 +6,19 @@ app.use(express.json());
 app.post('/alexa', (req, res) => {
 
     console.log('Requisição recebida da Alexa');
+    console.log(JSON.stringify(req.body, null, 2));
 
-    res.json({
+    return res.json({
         version: "1.0",
         response: {
             outputSpeech: {
                 type: "PlainText",
                 text: "Conexão funcionando com sucesso"
+            },
+            card: {
+                type: "Simple",
+                title: "Teste Alexa",
+                content: "Conexão funcionando com sucesso"
             },
             shouldEndSession: true
         }
