@@ -35,7 +35,11 @@ function getHeaders(url, body) {
     const request_data = {
         url,
         method: 'POST',
-        data: body
+        data: {
+            ...body,
+            script: '2582',
+            deploy: '1'
+        }
     };
 
     const oauthData = oauth.authorize(request_data, token);
