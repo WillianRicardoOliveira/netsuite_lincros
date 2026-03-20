@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
-const oauth = require('axios-oauth-1.0a');
+const OAuth = require('oauth-1.0a');
+const crypto = require('crypto');
 
 const app = express();
 app.use(express.json());
@@ -10,42 +11,86 @@ app.use(express.json());
 // ==========================
 const NETSUITE_URL = 'https://6932886.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=2582&deploy=1';
 
+const oauth = OAuth({
+    consumer: {
+        key: '1c17e6883aaee9076cba8a14f018ec876538f4c9043a42d27077691a0b7b7b11',
+        secret: '632b6b0f744eecd29be7510ec509990e72ba482ef4aabeada2bcad5924266447',
+    },
+    signature_method: 'HMAC-SHA256',
+    hash_function(base_string, key) {
+        return crypto
+            .createHmac('sha256', key)
+            .update(base_string)
+            .digest('base64');
+    },
+});
+
+const token = {
+    key: '71323f421135af0d67f83719c5a1f090b22f3803f9ef43522aa1ee999dc2e259',
+    secret: '8e9cc63d5334c635af23642aa95c353f98c0ae14084098df92bfdc0c40e9ae40',
+};
+
+// 🔥 HEADER CORRETO
+function getHeaders(url, method) {
+    const request_data = {
+        url,
+        method,
+    };
+
+    const oauthData = oauth.authorize(request_data, token);
+
+    return {
+        ...oauth.toHeader(oauthData),
+        Authorization: oauth.toHeader(oauthData).Authorization
+            .replace('OAuth ', 'OAuth realm="6932886", '),
+        'Content-Type': 'application/json'
+    };
+}
+
 // ==========================
 // 🔹 SERVICE NETSUITE
 // ==========================
 async function buscarDadosNetSuite() {
 
-    const client = oauth({
-        url: NETSUITE_URL,
-        method: 'POST',
-        data: {
-            consulta: "api_custo_desembarcado",
-            filtros: {
-                memorando: "ALT 2025-159 BP 2%",
-                id: 0
-            },
-            limit: 500
+    console.log('🟡 Chamando NetSuite...');
+
+    const body = {
+        consulta: "api_custo_desembarcado",
+        filtros: {
+            memorando: "ALT 2025-159 BP 2%",
+            id: 0
         },
-        oauth: {
-            consumer_key: '1c17e6883aaee9076cba8a14f018ec876538f4c9043a42d27077691a0b7b7b11',
-            consumer_secret: '632b6b0f744eecd29be7510ec509990e72ba482ef4aabeada2bcad5924266447',
-            token: '71323f421135af0d67f83719c5a1f090b22f3803f9ef43522aa1ee999dc2e259',
-            token_secret: '8e9cc63d5334c635af23642aa95c353f98c0ae14084098df92bfdc0c40e9ae40',
-            realm: '6932886',
-            signature_method: 'HMAC-SHA256'
-        }
-    });
+        limit: 500
+    };
+
+    const headers = getHeaders(NETSUITE_URL, 'POST');
 
     try {
-        const response = await client();
+        const start = Date.now();
 
-        console.log('Resposta NetSuite:', JSON.stringify(response.data, null, 2));
+        const response = await axios.post(
+            NETSUITE_URL,
+            body,
+            { headers }
+        );
+
+        console.log('⏱️ Tempo:', Date.now() - start, 'ms');
+        console.log('🟢 SUCESSO:', JSON.stringify(response.data, null, 2));
 
         return response.data;
 
     } catch (error) {
-        console.error('Erro NetSuite:', error.response?.data || error.message);
-        return null;
+
+        console.log('🔴 ERRO NetSuite');
+
+        if (error.response) {
+            console.log('🔴 STATUS:', error.response.status);
+            console.log('🔴 DATA:', JSON.stringify(error.response.data, null, 2));
+        } else {
+            console.log('🔴 ERRO:', error.message);
+        }
+
+        return { data: [] }; // 🔥 evita quebrar
     }
 }
 
@@ -53,45 +98,76 @@ async function buscarDadosNetSuite() {
 // 🔹 ENDPOINT ALEXA
 // ==========================
 app.post('/alexa', async (req, res) => {
+    try {
 
-    console.log('Requisição recebida da Alexa');
-    console.log(JSON.stringify(req.body, null, 2));
+        console.log('📥 Alexa request:', JSON.stringify(req.body, null, 2));
 
-    const requestType = req.body.request.type;
+        const requestType = req.body?.request?.type;
 
-    let speechText = "Não entendi sua solicitação";
+        let speechText = "Não entendi sua solicitação";
 
-    if (requestType === 'LaunchRequest') {
-        speechText = "Bem vindo ao Ruraldinho. Como posso ajudar?";
-    }
+        if (requestType === 'LaunchRequest') {
+            speechText = "Bem vindo ao Ruraldinho. Como posso ajudar?";
+        }
 
-    if (requestType === 'IntentRequest') {
-        const intentName = req.body.request.intent.name;
+        if (requestType === 'IntentRequest') {
+            const intentName = req.body?.request?.intent?.name;
 
-        if (intentName === 'FaturamentoHojeIntent') {
+            if (intentName === 'FaturamentoHojeIntent') {
 
-            const dados = await buscarDadosNetSuite();
+                const dados = await buscarDadosNetSuite();
 
-            if (dados && dados.data && dados.data.length > 0) {
-                const fatura = dados.data[0].fatura;
-                speechText = `Encontrei a fatura ${fatura}`;
-            } else {
-                console.log(dados);
-                speechText = "Não encontrei dados no NetSuite";
-                
+                const lista = Array.isArray(dados?.data) ? dados.data : [];
+
+                if (lista.length > 0) {
+                    const fatura = lista[0]?.fatura || 'desconhecida';
+                    speechText = `Encontrei a fatura ${fatura}`;
+                } else {
+                    speechText = "Não encontrei dados no NetSuite";
+                }
             }
         }
-    }
 
-    return res.json({
-        version: "1.0",
-        response: {
-            outputSpeech: {
-                type: "PlainText",
-                text: speechText
-            },
-            shouldEndSession: false
-        }
+        return res.json({
+            version: "1.0",
+            response: {
+                outputSpeech: {
+                    type: "PlainText",
+                    text: speechText
+                },
+                shouldEndSession: false
+            }
+        });
+
+    } catch (error) {
+
+        console.error('💥 ERRO CRÍTICO:', error);
+
+        return res.json({
+            version: "1.0",
+            response: {
+                outputSpeech: {
+                    type: "PlainText",
+                    text: "Erro interno"
+                },
+                shouldEndSession: true
+            }
+        });
+    }
+});
+
+// ==========================
+// 🔹 TESTE LOCAL
+// ==========================
+app.get('/teste-netsuite', async (req, res) => {
+
+    console.log('🧪 Teste manual iniciado');
+
+    const dados = await buscarDadosNetSuite();
+
+    res.json({
+        sucesso: true,
+        dados
     });
 });
 
