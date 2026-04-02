@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 const BASE_URL = 'https://deployment-tms.lincros.com';
-const TOKEN = 'SEU_TOKEN_AQUI';
+const TOKEN = '1j9n5FRPg9HkuLzUN1OaIuNRxs6krL2PCwZ6sTVHes';
 
 // 🔹 Health check
 app.get('/', (req, res) => {
