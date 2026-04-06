@@ -16,6 +16,78 @@ app.get('/', (req, res) => {
     res.send('Servidor OK');
 });
 
+
+app.post('/buscar-anexos', async (req, res) => {
+    try {
+        const { chaveNFe } = req.body;
+
+        if (!chaveNFe) {
+            return res.status(400).json({
+                success: false,
+                error: 'chaveNFe obrigatória'
+            });
+        }
+
+        console.log('🔍 BUSCAR ANEXOS:', { chaveNFe });
+
+        const response = await axios.post(
+            `${BASE_URL}/api/ocorrencia/buscarAnexos`,
+            { chaveNFe },
+            {
+                headers: {
+                    'Authorization': `Bearer ${TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                validateStatus: () => true
+            }
+        );
+
+        if (response.status !== 200) {
+            console.error('ERRO LINCROS:', response.status);
+            return res.status(response.status).json({
+                success: false,
+                status: response.status
+            });
+        }
+
+        return res.json({
+            success: true,
+            data: response.data
+        });
+
+    } catch (error) {
+        console.error('❌ ERRO BUSCAR ANEXOS:', error.message);
+
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // 🔥 DOWNLOAD + CONVERSÃO BASE64 (ROBUSTO)
 app.post('/download-anexo', async (req, res) => {
 
