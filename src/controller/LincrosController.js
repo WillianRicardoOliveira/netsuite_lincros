@@ -1,11 +1,8 @@
 const service = require('../service/LincrosService');
-
 const LincrosController = {
-
     health: (req, res) => {
         res.send('Servidor OK');
     },
-
     async buscarAnexos(req, res) {
         try {
             const result = await service.buscarAnexos(req.body);
@@ -17,7 +14,6 @@ const LincrosController = {
             });
         }
     },
-
     async downloadAnexo(req, res) {
         try {
             const result = await service.downloadAnexo(req.body);
@@ -30,5 +26,4 @@ const LincrosController = {
         }
     }
 };
-
 module.exports = LincrosController;
